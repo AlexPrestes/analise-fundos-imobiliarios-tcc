@@ -74,6 +74,10 @@ class DatasetCVM:
         self.unzip_files(inf, periodo)
         df_inf = self.merge_files(inf, periodo, arquivos)
 
+        for i in os.listdir():
+            if 'inf_' in i:
+                os.remove(i)
+
         return df_inf
 
     def columns_series(self, list_col=[]):
