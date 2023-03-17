@@ -39,7 +39,7 @@ class Dataset:
         self.data = pd.DataFrame(
             pd.Series(list_features), columns=['time_series']
         )
-        self.target = np.asarray(list_target)
+        self.data['target'] = pd.Series(list_target)
 
     def set_series(self, series=[logistic_map, fbm_positive]):
         self.list_series = series

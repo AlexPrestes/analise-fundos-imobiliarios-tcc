@@ -16,4 +16,4 @@ def test_dataset_set_series_working():
 def test_dataset_run_working():
     result = Dataset(n=4, L0=2, L=5)
     result.run()
-    assert result.data.size == 72
+    assert result.data.shape == (72, 2)

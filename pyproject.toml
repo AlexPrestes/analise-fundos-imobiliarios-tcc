@@ -7,10 +7,13 @@ readme = "README.md"
 packages = [{ include = "analise_fundos_imobiliarios" }]
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "==3.10.10"
 numpy = "^1.24.2"
 fbm = "^0.3.0"
 pandas = "^1.5.3"
+ts2vg = "^1.2.1"
+networkx = "^3.0"
+scipy = "^1.10.1"
 
 
 [tool.poetry.group.dev.dependencies]
