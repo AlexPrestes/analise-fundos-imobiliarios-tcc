@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "analise-fundos-imobiliarios"
+version = "0.1.0"
+description = ""
+authors = ["Alex Prestes <alex.prestes@usp.br>"]
+readme = "README.md"
+packages = [{include = "analise_fundos_imobiliarios"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
