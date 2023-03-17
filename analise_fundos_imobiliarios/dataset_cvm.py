@@ -11,9 +11,15 @@ pd.options.mode.chained_assignment = None
 
 
 class DatasetCVM:
-    def __init__(self, inf='mensal', periodo=[2016, 2022]):
+    def __init__(
+        self,
+        inf='mensal',
+        periodo=[2016, 2022],
+        arquivos=['geral', 'complemento', 'ativo_passivo'],
+    ):
         self.inf = inf
         self.periodo = periodo
+        self.arquivos = arquivos
 
     def run(self):
         self.columns_series()
@@ -50,8 +56,6 @@ class DatasetCVM:
                     df_dataset = pd.read_csv(
                         filename, sep=';', decimal='.', encoding='iso-8859-1'
                     )
-
-                remove(filename)
 
             if df_inf.empty:
                 df_inf = df_dataset
@@ -143,7 +147,7 @@ class DatasetCVM:
             ]
 
     def data_series(self):
-        data = self.informes(self.inf, self.periodo)
+        data = self.informes(self.inf, self.periodo, self.arquivos)
         self.data_info = self.data_info(data)
         self.data = (
             data[['CNPJ_Fundo', 'Data_Referencia'] + self.list_columns_series]
