@@ -1,0 +1,8 @@
+site_name: Análise de Fundo de Investimento Imobiliário
+repo_url: https://github.com/AlexPrestes/analise-fundos-imobiliarios
+repo_name: AlexPrestes/analise-fundos-imobiliarios
+edit_uri: tree/master/docs
+
+theme:
+  name: readthedocs
+  language: pt-BR
