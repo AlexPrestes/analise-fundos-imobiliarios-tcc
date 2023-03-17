@@ -4,7 +4,7 @@ version = "0.1.0"
 description = ""
 authors = ["Alex Prestes <alex.prestes@usp.br>"]
 readme = "README.md"
-packages = [{include = "analise_fundos_imobiliarios"}]
+packages = [{ include = "analise_fundos_imobiliarios" }]
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -25,3 +25,18 @@ mkdocs-material = "^9.1.3"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+pythonpath = "."
+addopts = "--doctest-modules"
+
+[tool.isort]
+profile = "black"
+line_length = 79
+
+[tool.taskipy.tasks]
+lint = "blue --check --diff . && isort --check --diff ."
+docs = "mkdocs serve"
+pre_test = "task lint"
+test = "pytest -s -x --cov=analise_fundos_imobiliarios -vv"
+post_test = "coverage html"
