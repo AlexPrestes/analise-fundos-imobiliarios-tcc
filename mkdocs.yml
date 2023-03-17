@@ -1,18 +1,21 @@
 site_name: Análise de Fundo de Investimento Imobiliário
 repo_url: https://github.com/AlexPrestes/analise-fundos-imobiliarios
 repo_name: AlexPrestes/analise-fundos-imobiliarios
+edit_uri: tree/master/docs
 
 theme:
   name: material
   language: pt-BR
   palette: 
-    # Palette toggle for dark mode
-    - scheme: slate
-      toggle:
-        icon: material/brightness-4
-        name: Switch to light mode
-    # Palette toggle for light mode
-    - scheme: default
-      toggle:
-        icon: material/brightness-7 
-        name: Switch to dark mode
+    scheme: slate
+
+plugins:
+- macros
+- mkdocstrings:
+    handlers:
+      python:
+        paths: [analise_fundos_imobiliarios]
+
+extra:
+  commands:
+    run: analise-fundos-imobiliarios
