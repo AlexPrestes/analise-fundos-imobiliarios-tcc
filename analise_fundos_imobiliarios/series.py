@@ -13,6 +13,7 @@ def logistic_map(n: int = 2, r: float = 4.0) -> NDArray:
 
     Returns:
         Uma lista com os valores da série
+
     """
     x_serie = np.zeros(n)
     x_serie[0] = np.random.random()
@@ -43,5 +44,5 @@ def fbm_none(n: int = 2, hurst: float = 0.5) -> NDArray:
     return fbm(n=(n - 1), hurst=hurst)
 
 
-def random(n: int = 2) -> NDArray:
+def random(n: int) -> NDArray:
     return np.random.random(n)
