@@ -9,7 +9,24 @@ import pandas as pd
 import xarray as xr
 
 
-class DatasetFiiMensal:
+class FilesCVM:
+    def __init__(self, report='mensal'):
+        year_now = int(datetime.now().strftime('%Y'))
+        self.report = report
+        self.path = f'./raw_cvm/{self.report}'
+        self.urls = [
+            f'https://dados.cvm.gov.br/dados/FII/DOC/INF_{self.report.upper()}/DADOS/inf_{self.report.lower()}_fii_{ano}.zip'
+            for ano in range(2016, year_now + 1)
+        ]
+
+
+class DatasetFiiMensal(xr.Dataset):
+    __slots__ = ('inf',)
+
+    def __init__(self, inf='Mensal'):
+        self.inf = inf
+        super().__init__()
+
     def download_files(self, inf):
         list_files = []
         ano_atual = int(datetime.now().strftime('%Y'))
@@ -138,7 +155,7 @@ class DatasetFiiMensal:
                 cols_float,
             ] = df[df.CNPJ_Fundo == cnpj][cols_float].to_numpy()
 
-        data = xr.Dataset(
+        super().__init__(
             data_vars=dict(
                 text=data_string,
                 time=data_date,
@@ -149,10 +166,8 @@ class DatasetFiiMensal:
             ),
         )
 
-        return data
-
     def run(self):
-        lista_arquivos_zip = self.download_files('mensal')
+        lista_arquivos_zip = self.download_files(self.inf)
         lista_arquivos_csv = self.unzip_files(lista_arquivos_zip)
         df = self.merge_dataframe(lista_arquivos_csv)
 
@@ -197,6 +212,6 @@ class DatasetFiiMensal:
             'Email',
         ]
 
-        self.data = self.dataframe_to_dataset_mensal(
+        self.dataframe_to_dataset_mensal(
             df, index_dims, fields_string, fields_date
         )
