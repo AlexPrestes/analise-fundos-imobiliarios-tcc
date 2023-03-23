@@ -1,236 +1,202 @@
 import os
+import re
 import urllib.request  # Download
 import zipfile  # Descompactar
-from os import remove  # para apagar os arquivos já utilizados
+from datetime import date, datetime
 
-# Biblioteca usada para leitura e união dos arquivos baixados
 import numpy as np
 import pandas as pd
+import xarray as xr
 
-pd.options.mode.chained_assignment = None
 
+class DatasetFiiMensal:
+    def download_files(self, inf):
+        list_files = []
+        ano_atual = int(datetime.now().strftime('%Y'))
 
-class DatasetCVM:
-    def __init__(
-        self,
-        inf='mensal',
-        periodo=[2016, 2022],
-        arquivos=['geral', 'complemento', 'ativo_passivo'],
-    ):
-        self.inf = inf
-        self.periodo = periodo
-        self.arquivos = arquivos
-
-    def run(self):
-        self.columns_series()
-        self.data_series()
-
-    def download_files(self, inf, periodo):
-        for ano in range(*periodo):
+        for ano in range(2016, ano_atual + 2):
             url = f'https://dados.cvm.gov.br/dados/FII/DOC/INF_{inf.upper()}/DADOS/inf_{inf.lower()}_fii_{ano}.zip'
             filename = f'inf_{inf.lower()}_fii_{ano}.zip'
-            urllib.request.urlretrieve(url, filename)
+            try:
+                urllib.request.urlretrieve(url, filename)
+                list_files.append(filename)
+            except:
+                ...
 
-    def unzip_files(self, inf, periodo):
-        for ano in range(*periodo):
-            filename = f'inf_{inf.lower()}_fii_{ano}.zip'
+        return list_files
 
+    def unzip_files(self, files):
+        list_files = []
+
+        for filename in files:
             with zipfile.ZipFile(filename, 'r') as zip_ref:
                 zip_ref.extractall()
+                for fn in zip_ref.filelist:
+                    list_files.append(fn.filename)
 
-            remove(filename)
+            os.remove(filename)
+        return list_files
 
-    def merge_files(self, inf, periodo, arquivos):
-        df_dataset = pd.DataFrame()
-        df_inf = pd.DataFrame()
-
-        for nome_arquivo in arquivos:
-            df_dataset = pd.DataFrame()
-
-            for ano in range(*periodo):
-                filename = (
-                    f'inf_{inf.lower()}_fii_{nome_arquivo.lower()}_{ano}.csv'
-                )
-
-                if df_dataset.empty:
-                    df_dataset = pd.read_csv(
-                        filename, sep=';', decimal='.', encoding='iso-8859-1'
+    def concat_files(self, files, type_file):
+        df = []
+        for fn in files:
+            if type_file in fn:
+                if isinstance(df, pd.DataFrame):
+                    df = pd.concat(
+                        [
+                            df,
+                            pd.read_csv(
+                                fn, encoding='ISO-8859-1', sep=';', decimal='.'
+                            ),
+                        ]
                     )
+                else:
+                    df = pd.read_csv(
+                        fn, encoding='ISO-8859-1', sep=';', decimal='.'
+                    )
+                os.remove(fn)
 
-            if df_inf.empty:
-                df_inf = df_dataset
-            else:
-                df_inf = pd.merge(df_inf, df_dataset, how='outer')
+        return df
 
-        df_inf['Data_Referencia'] = pd.to_datetime(df_inf['Data_Referencia'])
+    def list_type_files(self, list_filename):
+        list_tf = []
 
-        return df_inf
+        for fn in list_filename:
+            tf = re.search(r'.*_fii_(.+?)_\d{4}\.csv', fn).group(1)
+            if tf not in list_tf:
+                list_tf.append(tf)
 
-    def informes(
-        self,
-        inf='mensal',
-        periodo=[2016, 2022],
-        arquivos=['geral', 'complemento', 'ativo_passivo'],
+        return list_tf
+
+    def list_pk_dataframe(self, df1, df2):
+        index_pk = np.isin(df1.columns.values, df2.columns.values)
+        return list(df1.columns.values[index_pk])
+
+    def merge_dataframe(self, lista_arquivos_csv):
+        list_df = []
+
+        for tf in self.list_type_files(lista_arquivos_csv):
+            df = self.concat_files(lista_arquivos_csv, tf)
+            list_df.append(df)
+
+        df = list_df[0]
+
+        for df_i in list_df[1:]:
+            df = df.merge(
+                df_i,
+                left_on=self.list_pk_dataframe(df, df_i),
+                right_on=self.list_pk_dataframe(df, df_i),
+            )
+
+        return df
+
+    def dataframe_to_dataset_mensal(
+        self, df, index_cols, cols_string, cols_date
     ):
-        periodo[1] += 1
+        index_cnpj_fundo = df[index_cols[0]].astype(str).unique()
+        index_data_referencia = pd.to_datetime(df[index_cols[1]].unique())
+        cols_float = df.drop(
+            index_cols + cols_string + cols_date, axis=1
+        ).columns.values.astype(str)
 
-        self.download_files(inf, periodo)
-        self.unzip_files(inf, periodo)
-        df_inf = self.merge_files(inf, periodo, arquivos)
+        data_string = xr.DataArray(
+            dims=['cnpj_fundo', 'data_referencia', 'campo'],
+            coords=[index_cnpj_fundo, index_data_referencia, cols_string],
+            attrs=dict(describe='Dados formato de texto'),
+        ).astype(str)
 
-        for i in os.listdir():
-            if 'inf_' in i:
-                os.remove(i)
+        for cnpj in index_cnpj_fundo:
+            data_string.loc[
+                cnpj,
+                df[df.CNPJ_Fundo == cnpj].Data_Referencia.values,
+                cols_string,
+            ] = df[df.CNPJ_Fundo == cnpj][cols_string].to_numpy()
 
-        return df_inf
+        data_date = xr.DataArray(
+            dims=['cnpj_fundo', 'data_referencia', 'campo'],
+            coords=[index_cnpj_fundo, index_data_referencia, cols_date],
+            attrs=dict(describe='Dados formato data'),
+        ).astype(date)
 
-    def columns_series(self, list_col=[]):
-        if list_col:
-            self.list_columns_series = list_col
-        else:
-            self.list_columns_series = [
-                'Valor_Patrimonial_Cotas',
-                'Percentual_Despesas_Taxa_Administracao',
-                'Percentual_Despesas_Agente_Custodiante',
-                'Percentual_Rentabilidade_Efetiva_Mes',
-                'Percentual_Rentabilidade_Patrimonial_Mes',
-                'Percentual_Dividend_Yield_Mes',
-                'Percentual_Amortizacao_Cotas_Mes',
-                'Valor_Ativo',
-                'Patrimonio_Liquido',
-                'Disponibilidades',
-                'Titulos_Publicos',
-                'Titulos_Privados',
-                'Fundos_Renda_Fixa',
-                'Total_Investido',
-                'Direitos_Bens_Imoveis',
-                'Terrenos',
-                'Imoveis_Renda_Acabados',
-                'Imoveis_Renda_Construcao',
-                'Imoveis_Venda_Acabados',
-                'Imoveis_Venda_Construcao',
-                'Outros_Direitos_Reais',
-                'Acoes',
-                'Debentures',
-                'Bonus_Subscricao',
-                'Certificados_Deposito_Valores_Mobiliarios',
-                'Cedulas_Debentures',
-                'Fundo_Acoes',
-                'FIP',
-                'FII',
-                'FDIC',
-                'Outras_Cotas_FI',
-                'Notas_Promissorias',
-                'Acoes_Sociedades_Atividades_FII',
-                'Cotas_Sociedades_Atividades_FII',
-                'CEPAC',
-                'CRI',
-                'Letras_Hipotecarias',
-                'LCI',
-                'LIG',
-                'Outros_Valores_Mobliarios',
-                'Valores_Receber',
-                'Contas_Receber_Aluguel',
-                'Contas_Receber_Venda_Imoveis',
-                'Outros_Valores_Receber',
-                'Rendimentos_Distribuir',
-                'Taxa_Administracao_Pagar',
-                'Taxa_Performance_Pagar',
-                'Obrigacoes_Aquisicao_Imoveis',
-                'Adiantamento_Venda_Imoveis',
-                'Adiantamento_Alugueis',
-                'Obrigacoes_Securitizacao_Recebiveis',
-                'Instrumentos_Financeiros_Derivativos',
-                'Provisoes_Contigencias',
-                'Outros_Valores_Pagar',
-                'Total_Passivo',
-            ]
+        for cnpj in index_cnpj_fundo:
+            data_date.loc[
+                cnpj,
+                df[df.CNPJ_Fundo == cnpj].Data_Referencia.values,
+                cols_date,
+            ] = df[df.CNPJ_Fundo == cnpj][cols_date].to_numpy()
 
-    def data_series(self):
-        data = self.informes(self.inf, self.periodo, self.arquivos)
-        self.data_info = self.data_info(data)
-        self.data = (
-            data[['CNPJ_Fundo', 'Data_Referencia'] + self.list_columns_series]
-            .sort_values(['CNPJ_Fundo', 'Data_Referencia'])[
-                ['CNPJ_Fundo'] + self.list_columns_series
-            ]
-            .fillna(0)
-            .groupby('CNPJ_Fundo')
-            .agg(list)
+        data_float = xr.DataArray(
+            dims=['cnpj_fundo', 'data_referencia', 'campo'],
+            coords=[index_cnpj_fundo, index_data_referencia, cols_float],
+            attrs=dict(describe='Dados formato numérico'),
+        ).astype(np.float32)
+
+        for cnpj in index_cnpj_fundo:
+            data_float.loc[
+                cnpj,
+                df[df.CNPJ_Fundo == cnpj].Data_Referencia.values,
+                cols_float,
+            ] = df[df.CNPJ_Fundo == cnpj][cols_float].to_numpy()
+
+        data = xr.Dataset(
+            data_vars=dict(
+                text=data_string,
+                time=data_date,
+                numeric=data_float,
+            ),
+            attrs=dict(
+                describe="Dataset Informes Mensais FII's",
+            ),
         )
 
-    def data_info(self, data):
-        data_info = data[
-            [
-                'CNPJ_Fundo',
-                'Publico_Alvo',
-                'Fundo_Exclusivo',
-                'Cotistas_Vinculo_Familiar',
-                'Mandato',
-                'Segmento_Atuacao',
-                'Tipo_Gestao',
-                'Prazo_Duracao',
-            ]
+        return data
+
+    def run(self):
+        lista_arquivos_zip = self.download_files('mensal')
+        lista_arquivos_csv = self.unzip_files(lista_arquivos_zip)
+        df = self.merge_dataframe(lista_arquivos_csv)
+
+        index_dims = ['CNPJ_Fundo', 'Data_Referencia']
+
+        fields_date = [
+            'Data_Entrega',
+            'Data_Funcionamento',
+            'Data_Prazo_Duracao',
+            'Data_Informacao_Numero_Cotistas',
         ]
 
-        data_info['Publico_Alvo'] = data_info['Publico_Alvo'].apply(
-            lambda x: x if isinstance(x, str) else 'INVESTIDORES EM GERAL'
-        )
-        data_info['Publico_Alvo'] = data_info['Publico_Alvo'].apply(
-            lambda x: x
-            if isinstance(x, np.ndarray)
-            else 'INVESTIDORES EM GERAL'
-        )
+        fields_string = [
+            'Nome_Fundo',
+            'Publico_Alvo',
+            'Codigo_ISIN',
+            'Fundo_Exclusivo',
+            'Cotistas_Vinculo_Familiar',
+            'Mandato',
+            'Segmento_Atuacao',
+            'Tipo_Gestao',
+            'Prazo_Duracao',
+            'Encerramento_Exercicio_Social',
+            'Mercado_Negociacao_Bolsa',
+            'Mercado_Negociacao_MBO',
+            'Mercado_Negociacao_MB',
+            'Entidade_Administradora_BVMF',
+            'Entidade_Administradora_CETIP',
+            'Nome_Administrador',
+            'CNPJ_Administrador',
+            'Logradouro',
+            'Numero',
+            'Complemento',
+            'Bairro',
+            'Cidade',
+            'Estado',
+            'CEP',
+            'Telefone1',
+            'Telefone2',
+            'Telefone3',
+            'Site',
+            'Email',
+        ]
 
-        data_info['Fundo_Exclusivo'] = data_info['Fundo_Exclusivo'].apply(
-            lambda x: x if isinstance(x, str) else 'N'
+        self.data = self.dataframe_to_dataset_mensal(
+            df, index_dims, fields_string, fields_date
         )
-        data_info['Fundo_Exclusivo'] = data_info['Fundo_Exclusivo'].apply(
-            lambda x: x if isinstance(x, np.ndarray) else 'N'
-        )
-
-        data_info['Cotistas_Vinculo_Familiar'] = data_info[
-            'Cotistas_Vinculo_Familiar'
-        ].apply(lambda x: x if isinstance(x, str) else 'N')
-        data_info['Cotistas_Vinculo_Familiar'] = data_info[
-            'Cotistas_Vinculo_Familiar'
-        ].apply(lambda x: x if isinstance(x, np.ndarray) else 'N')
-
-        data_info['Mandato'] = data_info['Mandato'].apply(
-            lambda x: x if isinstance(x, str) else 'Renda'
-        )
-        data_info['Mandato'] = data_info['Mandato'].apply(
-            lambda x: x if isinstance(x, np.ndarray) else 'Renda'
-        )
-
-        data_info['Segmento_Atuacao'] = data_info['Segmento_Atuacao'].apply(
-            lambda x: x if isinstance(x, str) else 'Híbrido'
-        )
-        data_info['Segmento_Atuacao'] = data_info['Segmento_Atuacao'].apply(
-            lambda x: x if isinstance(x, np.ndarray) else 'Híbrido'
-        )
-
-        data_info['Tipo_Gestao'] = data_info['Tipo_Gestao'].apply(
-            lambda x: x if isinstance(x, str) else 'Passiva'
-        )
-        data_info['Tipo_Gestao'] = data_info['Tipo_Gestao'].apply(
-            lambda x: x if isinstance(x, np.ndarray) else 'Passiva'
-        )
-
-        data_info['Prazo_Duracao'] = data_info['Prazo_Duracao'].apply(
-            lambda x: x if isinstance(x, str) else 'Indeterminado'
-        )
-        data_info['Prazo_Duracao'] = data_info['Prazo_Duracao'].apply(
-            lambda x: x if isinstance(x, np.ndarray) else 'Indeterminado'
-        )
-
-        data_info = data_info.groupby(['CNPJ_Fundo']).agg(
-            lambda x: pd.Series.mode(x)
-        )
-        data_info['Data_Referencia'] = (
-            data[['CNPJ_Fundo', 'Data_Referencia']]
-            .groupby(['CNPJ_Fundo'])
-            .agg(lambda x: pd.Series.max(x))['Data_Referencia']
-        )
-
-        return data_info
