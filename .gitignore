@@ -176,6 +176,18 @@ pyrightconfig.json
 # dataset
 *.pq
 *.nc
+*.csv
+dataset/
+dataset/cvm
+dataset/cvm/zip
+dataset/cvm/csv
+dataset/cvm/zip/mensal
+dataset/cvm/zip/trimestral
+dataset/cvm/zip/anual
+dataset/cvm/csv/mensal
+dataset/cvm/csv/trimestral
+dataset/cvm/csv/anual
+
 
 # End of https://www.toptal.com/developers/gitignore/api/python
 

@@ -10,12 +10,11 @@ packages = [{ include = "analise_fundos_imobiliarios" }]
 python = "==3.10.10"
 numpy = "^1.24.2"
 fbm = "^0.3.0"
-pandas = "^1.5.3"
 ts2vg = "^1.2.1"
 networkx = "^3.0"
 scipy = "^1.10.1"
-fastparquet = "^2023.2.0"
 xarray = "^2023.2.0"
+pandas = "^1.5.3"
 
 
 [tool.poetry.group.dev.dependencies]
