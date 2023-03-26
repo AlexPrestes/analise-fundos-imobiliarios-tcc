@@ -6,6 +6,7 @@ from datetime import datetime
 from functools import reduce
 
 import pandas as pd
+import xarray as xr
 
 
 def download_files_cvm(report='mensal'):
@@ -62,7 +63,8 @@ def read_files_cvm(report='mensal'):
 
     for fn in filenames:
         df = pd.read_csv(path + fn, encoding='ISO-8859-1', sep=';')
-        df_key = re.match(r'.*fii_(.*)_\d{4}\.csv', fn).group(1)
+        regex_match = re.fullmatch(r'.*fii_(.*)_\d{4}\.csv', fn)
+        df_key = regex_match.group(1) if regex_match else ''
         dict_df[df_key] = pd.concat(
             [
                 dict_df.get(df_key, pd.DataFrame()),
@@ -79,21 +81,28 @@ def read_files_cvm(report='mensal'):
     return dict_df
 
 
-def transform_files_cvm(report='mensal'):
-    report = report.lower()
-    if report != 'mensal':
-        return
-
-    dict_fundos = {}
+def transform_files_cvm_mensal():
+    report = 'mensal'
     df = reduce(
-        lambda df1, df2: pd.merge(df1, df2), read_files_cvm(report).values()
+        lambda df1, df2: pd.merge(df1, df2),
+        read_files_cvm(report).values()
     )
 
-    dict_fundos = {
-        cnpj: df[df.CNPJ_Fundo == cnpj]
-        .drop(columns=['CNPJ_Fundo'])
-        .set_index(['Data_Referencia'])
-        for cnpj in df.CNPJ_Fundo.unique()
-    }
+    list_variables = df.drop(
+        ['CNPJ_Fundo', 'Data_Referencia'],
+        axis=1,
+    ).columns.values
 
-    return dict_fundos
+    pre_ds = {}
+    for var in list_variables:
+        pre_ds[var] = (('CNPJ_Fundo', 'Data_Referencia'), pd.pivot(df, index='Data_Referencia', columns='CNPJ_Fundo', values=var).to_numpy().T)
+
+    ds = xr.Dataset(
+        pre_ds,
+        coords={
+            'CNPJ_Fundo': df.CNPJ_Fundo.unique(),
+            'Data_Referencia': pd.to_datetime(sorted(df.Data_Referencia.unique())),
+        }
+    )
+
+    return ds
