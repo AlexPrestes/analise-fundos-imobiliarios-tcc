@@ -3,7 +3,6 @@ import numpy as np
 from scipy.stats import linregress
 from ts2vg import NaturalVG
 
-
 def time_series_to_visibility_graph(ts):
     return NaturalVG(directed=None).build(ts).as_networkx()
 
