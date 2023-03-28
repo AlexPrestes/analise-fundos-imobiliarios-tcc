@@ -3,13 +3,21 @@ import numpy as np
 from scipy.stats import linregress
 from ts2vg import NaturalVG
 
+
 def time_series_to_visibility_graph(ts):
-    return NaturalVG(directed=None).build(ts).as_networkx()
+    return NaturalVG(directed=None).build(ts.flatten()).as_networkx()
 
 
-def time_series_to_metrics(ts, list_metrics):
+def time_series_to_metric(ts, metric):
     graph = time_series_to_visibility_graph(ts)
-    return [metric(graph) for metric in list_metrics]
+    return metric(graph)
+
+
+time_series_to_metric = np.vectorize(
+    time_series_to_metric,
+    otypes=[np.float32],
+    signature='(i),()->()',
+)
 
 
 def number_of_nodes(graph):
