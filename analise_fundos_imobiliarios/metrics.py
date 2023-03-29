@@ -3,57 +3,55 @@ import numpy as np
 from scipy.stats import linregress
 from ts2vg import NaturalVG
 
+from analise_fundos_imobiliarios.utils import vectorize_metric
+
 
 def time_series_to_visibility_graph(ts):
-    return NaturalVG(directed=None).build(ts.flatten()).as_networkx()
+    ts2g = np.vectorize(
+        lambda x: NaturalVG(directed=None).build(x).as_networkx(),
+        otypes=[nx.Graph],
+        signature='(i)->()',
+    )
+    return ts2g(ts)
 
 
-def time_series_to_metric(ts, metric):
-    graph = time_series_to_visibility_graph(ts)
-    return metric(graph)
+@vectorize_metric
+def number_of_nodes(graph: nx.Graph):
+    return nx.number_of_nodes(graph)
 
 
-time_series_to_metric = np.vectorize(
-    time_series_to_metric,
-    otypes=[np.float32],
-    signature='(i),()->()',
-)
-
-
-def number_of_nodes(graph):
-    return graph.number_of_nodes()
-
-
+@vectorize_metric
 def average_clustering(graph):
-    if number_of_nodes(graph):
+    if nx.number_of_nodes(graph):
         return nx.average_clustering(graph)
     else:
         return 0
 
 
+@vectorize_metric
 def average_short_path(graph):
-    if number_of_nodes(graph):
+    if nx.number_of_nodes(graph):
         return nx.average_shortest_path_length(graph)
     else:
         return 0
 
 
+@vectorize_metric
 def density(graph):
-    if number_of_nodes(graph):
+    if nx.number_of_nodes(graph):
         return nx.density(graph)
     else:
         return 0
 
 
+@vectorize_metric
 def number_of_edges(graph):
-    if number_of_nodes(graph):
-        return graph.number_of_edges()
-    else:
-        return 0
+    return nx.number_of_edges(graph)
 
 
+@vectorize_metric
 def average_degree(graph):
-    if number_of_nodes(graph):
+    if nx.number_of_nodes(graph):
         return np.mean(list(dict(nx.degree(graph)).values()))
     else:
         return 0
@@ -63,8 +61,8 @@ def distribution_degree(graph):
     list_degree = list(dict(nx.degree(graph)).values())
     x, y = np.histogram(
         list_degree,
-        bins=graph.number_of_nodes() + 1,
-        range=(0, graph.number_of_nodes() + 1),
+        bins=nx.number_of_nodes(graph) + 1,
+        range=(0, nx.number_of_nodes(graph) + 1),
     )
     y = y[:-1]
 
