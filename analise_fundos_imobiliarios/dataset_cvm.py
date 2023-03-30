@@ -84,8 +84,7 @@ def read_files_cvm(report='mensal'):
 def transform_files_cvm_mensal():
     report = 'mensal'
     df = reduce(
-        lambda df1, df2: pd.merge(df1, df2),
-        read_files_cvm(report).values()
+        lambda df1, df2: pd.merge(df1, df2), read_files_cvm(report).values()
     )
 
     list_variables = df.drop(
@@ -95,14 +94,23 @@ def transform_files_cvm_mensal():
 
     pre_ds = {}
     for var in list_variables:
-        pre_ds[var] = (('CNPJ_Fundo', 'Data_Referencia'), pd.pivot(df, index='Data_Referencia', columns='CNPJ_Fundo', values=var).to_numpy().T)
+        pre_ds[var] = (
+            ('CNPJ_Fundo', 'Data_Referencia'),
+            pd.pivot(
+                df, index='Data_Referencia', columns='CNPJ_Fundo', values=var
+            )
+            .to_numpy()
+            .T,
+        )
 
     ds = xr.Dataset(
         pre_ds,
         coords={
             'CNPJ_Fundo': df.CNPJ_Fundo.unique(),
-            'Data_Referencia': pd.to_datetime(sorted(df.Data_Referencia.unique())),
-        }
+            'Data_Referencia': pd.to_datetime(
+                sorted(df.Data_Referencia.unique())
+            ),
+        },
     )
 
     return ds

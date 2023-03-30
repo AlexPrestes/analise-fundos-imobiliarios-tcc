@@ -12,11 +12,11 @@ def time_series_to_visibility_graph(ts):
         otypes=[nx.Graph],
         signature='(i)->()',
     )
-    return ts2g(ts)
+    return ts2g(np.asarray(ts, dtype=np.float32))
 
 
 @vectorize_metric
-def number_of_nodes(graph: nx.Graph):
+def number_of_nodes(graph):
     return nx.number_of_nodes(graph)
 
 
@@ -66,12 +66,16 @@ def distribution_degree(graph):
     )
     y = y[:-1]
 
-    return x, y
+    return y, x
 
 
+@vectorize_metric
 def coefficient_distribution_degree(graph):
     x, y = distribution_degree(graph)
-    idx = x[2:] != 0
-    fit = linregress(np.log(x[2:][idx]), np.log(y[2:][idx]))
+    idx = y[2:] != 0
+    try:
+        fit = linregress(np.log(x[2:][idx]), np.log(y[2:][idx])).slope
+    except:
+        fit = np.nan
 
     return fit

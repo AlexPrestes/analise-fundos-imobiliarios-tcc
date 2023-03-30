@@ -18,7 +18,7 @@ class Dataset(xr.Dataset):
         super().__init__()
         self.n = n
         self.L0 = L0
-        self.L = L
+        self.L = L + 1
         self.list_series = [
             fbm_negative,
             fbm_none,

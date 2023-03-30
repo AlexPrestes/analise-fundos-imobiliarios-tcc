@@ -8,5 +8,5 @@ def vectorize_metric(func):
             return func(*args, **kwargs)
         else:
             return np.vectorize(func, signature='()->()')(*args, **kwargs)
-    
+
     return inner1
