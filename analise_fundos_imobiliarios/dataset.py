@@ -14,17 +14,15 @@ from analise_fundos_imobiliarios.series import (
 class Dataset(xr.Dataset):
     __slots__ = ('n', 'L0', 'L', 'list_series')
 
-    def __init__(self, n=20, L0=10, L=60):
+    def __init__(self, n=20, L0=10, L=80):
         super().__init__()
         self.n = n
         self.L0 = L0
         self.L = L + 1
         self.list_series = [
             fbm_negative,
-            fbm_none,
             fbm_positive,
             logistic_map,
-            random,
             sine_map,
         ]
 
