@@ -8,6 +8,8 @@ from functools import reduce
 import pandas as pd
 import xarray as xr
 
+from analise_fundos_imobiliarios.pre_processing_mensal_cvm import pre_processing_mensal
+
 
 def download_files_cvm(report='mensal'):
     report = report.lower()
@@ -63,6 +65,7 @@ def read_files_cvm(report='mensal'):
 
     for fn in filenames:
         df = pd.read_csv(path + fn, encoding='ISO-8859-1', sep=';')
+        df.fillna(0.0, inplace=True)
         regex_match = re.fullmatch(r'.*fii_(.*)_\d{4}\.csv', fn)
         df_key = regex_match.group(1) if regex_match else ''
         dict_df[df_key] = pd.concat(
@@ -86,6 +89,9 @@ def transform_files_cvm_mensal():
     df = reduce(
         lambda df1, df2: pd.merge(df1, df2), read_files_cvm(report).values()
     )
+
+    for k, v in pre_processing_mensal.items():
+        df[k] = df[k].astype(str).str.extract(v[0]).astype(v[1])
 
     list_variables = df.drop(
         ['CNPJ_Fundo', 'Data_Referencia'],

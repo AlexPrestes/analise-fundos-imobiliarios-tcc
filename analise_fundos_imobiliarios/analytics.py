@@ -1,3 +1,4 @@
+from operator import index
 import warnings
 
 from analise_fundos_imobiliarios.dataset import *
@@ -8,7 +9,7 @@ warnings.filterwarnings('ignore')
 
 
 def dataarray_metrics(
-    ds, variable='series', input_core_dims='time', metrics=None
+    ds, variable='series', input_core_dims='time', metrics=None, diff=False
 ):
     if metrics == None:
         metrics = [
@@ -22,9 +23,14 @@ def dataarray_metrics(
         ]
     metrics = np.asarray(metrics)
 
+    ds_serie = ds[variable]
+
+    if diff:
+        ds_serie = ds[variable].diff(dim=input_core_dims)
+
     da_vg = xr.apply_ufunc(
         time_series_to_visibility_graph,
-        ds[variable],
+        ds_serie,
         input_core_dims=[[input_core_dims]],
     )
 
@@ -42,13 +48,25 @@ def dataarray_metrics(
     return xr.Dataset({variable: metrics_vg})
 
 
-def metrics_fii_mensal(ds):
-    variables = ds.to_array().coords['variable'].values[18:75]
-    ds_out = dataarray_metrics(ds, variables[0], 'Data_Referencia')
+def metrics_fii_mensal(ds, diff=False):
+    variables = ds.to_array().coords['variable'].values
+    ds_out = dataarray_metrics(ds, variables[0], 'Data_Referencia', diff=diff)
+    df_string = None
 
-    for var in variables[1:]:
-        ds_out = ds_out.combine_first(
-            dataarray_metrics(ds, var, 'Data_Referencia')
-        )
+    for var in variables:
+        if ds[var].dtype == 'float64':
+            ds_out = ds_out.combine_first(
+                dataarray_metrics(ds, var, 'Data_Referencia', diff=diff).astype(np.float32)
+            )
+        else:
+            df_col = ds[var].to_dataframe().reset_index()[['CNPJ_Fundo', var]]
+            df_col = df_col.groupby('CNPJ_Fundo').agg(
+                lambda x: x.mode().iat[0]
+            )
+            
+            if not isinstance(df_string, pd.DataFrame):
+                df_string = df_col
+            else:
+                df_string[var] = df_col.values.astype(str)
 
-    return ds_out
+    return ds_out, df_string
