@@ -2,6 +2,7 @@ import networkx as nx
 import numpy as np
 from scipy.stats import linregress
 from ts2vg import NaturalVG
+from ts2vg import HorizontalVG
 
 from analise_fundos_imobiliarios.utils import vectorize_metric
 

@@ -1,7 +1,6 @@
 from analise_fundos_imobiliarios.analytics import *
 
 
-
 def run_treino():
     ds_treino = Dataset(n=100, L0=10, L=82)
     ds_treino.run()
@@ -22,14 +21,6 @@ def run_treino():
 
 def run_fii_mensal():
     ds_fii = transform_files_cvm_mensal()
-    #ds_fii.to_netcdf('dataset/cvm/dataset_cvm_mensal.nc')
-    ds_fii_metrica = metrics_fii_mensal(ds_fii, ds_fii.to_array().coords['variable'].values[18:75])
+    ds_fii_metrica, df_cat = metrics_fii_mensal(ds_fii)
     ds_fii_metrica.to_netcdf('dataset/cvm/dataset_cvm_metrica_mensal.nc')
-
-    del ds_fii_metrica
-
-    ds_fii_metrica = metrics_fii_mensal(ds_fii, ds_fii.to_array().coords['variable'].values[18:75], diff=True)
-    ds_fii_metrica.to_netcdf('dataset/cvm/dataset_cvm_metrica_mensal_diff.nc')
-
-    del ds_fii_metrica
-    del ds_fii
+    df_cat.to_csv('dataset/cvm/dataset_cvm_metrica_mensal_dados.csv')

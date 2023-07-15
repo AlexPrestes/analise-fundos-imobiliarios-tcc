@@ -4,6 +4,7 @@ import warnings
 from analise_fundos_imobiliarios.dataset import *
 from analise_fundos_imobiliarios.dataset_cvm import *
 from analise_fundos_imobiliarios.metrics import *
+from analise_fundos_imobiliarios.utils import *
 
 warnings.filterwarnings('ignore')
 
@@ -69,4 +70,7 @@ def metrics_fii_mensal(ds, diff=False):
             else:
                 df_string[var] = df_col.values.astype(str)
 
+    df_string['TIR'] = [ tir_fundo(ds, cnpj) for cnpj in ds.CNPJ_Fundo.values ]
+    df_string['Data_Referencia_Inicial'] = ds['Patrimonio_Liquido'].to_dataframe().reset_index().dropna().drop(columns=['Patrimonio_Liquido']).groupby('CNPJ_Fundo').min()['Data_Referencia']
+    df_string['Data_Referencia_Final'] = ds['Patrimonio_Liquido'].to_dataframe().reset_index().dropna().drop(columns=['Patrimonio_Liquido']).groupby('CNPJ_Fundo').max()['Data_Referencia']
     return ds_out, df_string
