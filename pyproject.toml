@@ -7,15 +7,22 @@ readme = "README.md"
 packages = [{ include = "analise_fundos_imobiliarios" }]
 
 [tool.poetry.dependencies]
-python = "==3.10.10"
+python = ">=3.10.10,<3.12"
 numpy = "^1.24.2"
 fbm = "^0.3.0"
 ts2vg = "^1.2.1"
 networkx = "^3.0"
 scipy = "^1.10.1"
-xarray = "^2023.2.0"
 pandas = "^1.5.3"
 matplotlib = "^3.7.1"
+pyxirr = "^0.9.0"
+xarray = "^2023.4.2"
+numpy-financial = "^1.0.0"
+scikit-learn = "^1.2.2"
+torch = "^2.0.1"
+torchvision = "^0.15.2"
+torchaudio = "^2.0.2"
+tqdm = "^4.65.0"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -24,6 +31,7 @@ pytest-cov = "^4.0.0"
 blue = "^0.9.1"
 isort = "^5.12.0"
 taskipy = "^1.10.3"
+jupyter = "^1.0.0"
 
 
 [tool.poetry.group.doc.dependencies]
