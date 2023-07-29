@@ -2,7 +2,6 @@ import networkx as nx
 import numpy as np
 from scipy.stats import linregress
 from ts2vg import NaturalVG
-from ts2vg import HorizontalVG
 
 from analise_fundos_imobiliarios.utils import vectorize_metric
 
@@ -58,21 +57,15 @@ def average_degree(graph):
         return 0
 
 
-def distribution_degree(graph):
-    list_degree = list(dict(nx.degree(graph)).values())
+@vectorize_metric
+def coefficient_distribution_degree(graph):
+    list_degree = list(dict(graph.degree()).values())
     x, y = np.histogram(
         list_degree,
         bins=nx.number_of_nodes(graph) + 1,
         range=(0, nx.number_of_nodes(graph) + 1),
     )
     y = y[:-1]
-
-    return y, x
-
-
-@vectorize_metric
-def coefficient_distribution_degree(graph):
-    x, y = distribution_degree(graph)
     idx = y[2:] != 0
     try:
         fit = linregress(np.log(x[2:][idx]), np.log(y[2:][idx])).slope

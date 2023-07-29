@@ -1,7 +1,7 @@
 from analise_fundos_imobiliarios.dataset_cvm import (
     download_files_cvm,
     read_files_cvm,
-    transform_files_cvm,
+    transform_files_cvm_mensal,
     unzip_files_cvm,
 )
 
@@ -22,6 +22,6 @@ def test_read_files_cvm_working():
     assert 'geral' in result.keys()
 
 
-def test_transform_files_cvm():
-    result = transform_files_cvm('mensal')
+def test_transform_files_cvm_mensal_working():
+    result = transform_files_cvm_mensal()
     assert len(result.values()) > 0

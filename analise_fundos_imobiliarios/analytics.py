@@ -1,7 +1,5 @@
-from operator import index
 import warnings
 
-from analise_fundos_imobiliarios.dataset import *
 from analise_fundos_imobiliarios.dataset_cvm import *
 from analise_fundos_imobiliarios.metrics import *
 from analise_fundos_imobiliarios.utils import *
@@ -57,20 +55,45 @@ def metrics_fii_mensal(ds, diff=False):
     for var in variables:
         if ds[var].dtype == 'float64':
             ds_out = ds_out.combine_first(
-                dataarray_metrics(ds, var, 'Data_Referencia', diff=diff).astype(np.float32)
+                dataarray_metrics(
+                    ds, var, 'Data_Referencia', diff=diff
+                ).astype(np.float32)
             )
         else:
             df_col = ds[var].to_dataframe().reset_index()[['CNPJ_Fundo', var]]
             df_col = df_col.groupby('CNPJ_Fundo').agg(
                 lambda x: x.mode().iat[0]
             )
-            
+
             if not isinstance(df_string, pd.DataFrame):
                 df_string = df_col
-            else:
+
+            if df_string != None:
                 df_string[var] = df_col.values.astype(str)
 
-    df_string['TIR'] = [ tir_fundo(ds, cnpj) for cnpj in ds.CNPJ_Fundo.values ]
-    df_string['Data_Referencia_Inicial'] = ds['Patrimonio_Liquido'].to_dataframe().reset_index().dropna().drop(columns=['Patrimonio_Liquido']).groupby('CNPJ_Fundo').min()['Data_Referencia']
-    df_string['Data_Referencia_Final'] = ds['Patrimonio_Liquido'].to_dataframe().reset_index().dropna().drop(columns=['Patrimonio_Liquido']).groupby('CNPJ_Fundo').max()['Data_Referencia']
+    if df_string != None:
+        df_string['TIR'] = [
+            tir_fundo(ds, cnpj) for cnpj in ds.CNPJ_Fundo.values
+        ]
+        df_string['Data_Referencia_Inicial'] = (
+            ds['Patrimonio_Liquido']
+            .to_dataframe()
+            .reset_index()
+            .dropna()
+            .drop(columns=['Patrimonio_Liquido'])
+            .groupby('CNPJ_Fundo')
+            .min()['Data_Referencia']
+        )
+        df_string['Data_Referencia_Final'] = (
+            ds['Patrimonio_Liquido']
+            .to_dataframe()
+            .reset_index()
+            .dropna()
+            .drop(columns=['Patrimonio_Liquido'])
+            .groupby('CNPJ_Fundo')
+            .max()['Data_Referencia']
+        )
+    else:
+        df_string = pd.DataFrame()
+
     return ds_out, df_string

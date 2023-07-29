@@ -8,7 +8,9 @@ from functools import reduce
 import pandas as pd
 import xarray as xr
 
-from analise_fundos_imobiliarios.pre_processing_mensal_cvm import pre_processing_mensal
+from analise_fundos_imobiliarios.pre_processing_mensal_cvm import (
+    pre_processing_mensal,
+)
 
 
 def download_files_cvm(report='mensal'):
